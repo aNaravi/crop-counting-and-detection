@@ -80,12 +80,8 @@ class DensityPreprocessor:
 
 
 class CountPreprocessor:
-    def __init__(self, point_radius=0):
-        radius_to_pixels = {0:1, 1:5, 2:13, 3:29, 4:49, 5:81, 6:113, 7:149, 8:197, 9:253, 10:317}
-        self.divisor = radius_to_pixels[point_radius]
-
     def preprocess(self, sub_images):
-        return sub_images.sum(axis=(1,2)) / self.divisor
+        return sub_images.sum(axis=(1,2))
 
 
 class SubImagePreprocessor:

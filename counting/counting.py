@@ -19,12 +19,14 @@ args = vars(ap.parse_args())
 img_dimensions = (384,1600)
 sub_img_dimensions = (64,64)
 stride = 8
+point_radius = 3
+blur = (7,2)
 
 resizor = ResizePreprocessor(*img_dimensions)
 decorrstretcher = DecorrstretchPreprocessor()
-contours = ContourPreprocessor(point_radius=5)
-blurring = DensityPreprocessor(9,3)
-counter = CountPreprocessor(point_radius=5)
+contours = ContourPreprocessor(point_radius)
+blurring = DensityPreprocessor(*blur)
+counter = CountPreprocessor()
 img_cropper = SubImagePreprocessor(sub_img_dimensions, stride)
 
 images_loader = DataLoader(preprocessors=[resizor, decorrstretcher, img_cropper])
@@ -45,7 +47,7 @@ train_counts = counts_loader.load_continuous(binary_paths[train_indices], verbos
 test_counts = np.expand_dims(counts_loader.load_discontinuous(binary_paths[test_indices], verbose=1), axis=2)
 
 tasselnet = TasselNet()
-tasselnet.build(architecture='alexnet', input_shape=tuple(*sub_img_dimensions, 3))
+tasselnet.build(architecture='alexnet', input_shape=tuple((*sub_img_dimensions, 3)))
 
 tasselnet.train(train_images, train_counts,
                 save_folder=args.get("models"),
@@ -61,5 +63,6 @@ tasselnet.train(train_images, train_counts,
 MAE, predictions, counts = tasselnet.test(test_images, test_counts,
                                           img_dimensions=img_dimensions,
                                           sub_img_dimensions=sub_img_dimensions,
-                                          stride=stride)
+                                          stride=stride,
+                                          point_radius=point_radius)
 print(sum(predictions) - sum(counts))

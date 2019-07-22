@@ -77,7 +77,8 @@ class TasselNet:
     def test(self, X, Y, **kwargs):
         agg = AggregateLocalCounts(img_shape=kwargs.get("img_dimensions", (384,1600)),
                                    sub_img_shape=kwargs.get("sub_img_dimensions", (32,32)),
-                                   stride=kwargs.get("stride", 8))
+                                   stride=kwargs.get("stride", 8),
+                                   point_radius=kwargs.get("point_radius", 0))
 
         mean_absolute_errors, agg_predictions, agg_counts = [], [], []
         for sub_img_set, counts_set in zip(X, Y):
