@@ -18,7 +18,7 @@ args = vars(ap.parse_args())
 
 img_dimensions = (384,1600)
 sub_img_dimensions = (64,64)
-stride = 8
+strides = (8,8)
 point_radius = 3
 blur = (7,2)
 
@@ -27,7 +27,7 @@ decorrstretcher = DecorrstretchPreprocessor()
 contours = ContourPreprocessor(point_radius)
 blurring = DensityPreprocessor(*blur)
 counter = CountPreprocessor()
-img_cropper = SubImagePreprocessor(sub_img_dimensions, stride)
+img_cropper = SubImagePreprocessor(sub_img_dimensions, strides)
 
 images_loader = DataLoader(preprocessors=[resizor, decorrstretcher, img_cropper])
 counts_loader = DataLoader(preprocessors=[resizor, contours, blurring, img_cropper, counter])
@@ -63,6 +63,6 @@ tasselnet.train(train_images, train_counts,
 MAE, predictions, counts = tasselnet.test(test_images, test_counts,
                                           img_dimensions=img_dimensions,
                                           sub_img_dimensions=sub_img_dimensions,
-                                          stride=stride,
+                                          strides=strides,
                                           point_radius=point_radius)
 print(sum(predictions) - sum(counts))

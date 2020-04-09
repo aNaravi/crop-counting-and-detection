@@ -86,22 +86,22 @@ class CountPreprocessor:
 
 class SubImagePreprocessor:
     # Constructor
-    def __init__(self, sub_img_shape=(32,32), stride=8):
+    def __init__(self, sub_img_shape=(32,32), strides=(8,8)):
         """
         :param sub_width: sub-image width
         :param sub_height: sub-image height
-        :param stride: vertical and horizontal stride length
+        :param strides: vertical and horizontal stride lengths
         """
         self.sub_img_shape = sub_img_shape
-        self.stride = stride
+        self.strides = strides
 
     def preprocess(self, image):
         """
         :param image
         :return numpy array of subimages of size sub_img_shape
         """
-        indices = product(range(0, image.shape[0] - self.sub_img_shape[0] + 1, self.stride),
-                          range(0, image.shape[1] - self.sub_img_shape[1] + 1, self.stride))
+        indices = product(range(0, image.shape[0] - self.sub_img_shape[0] + 1, self.strides[0]),
+                          range(0, image.shape[1] - self.sub_img_shape[1] + 1, self.strides[1]))
 
         if len(image.shape) == 3:
             return np.array([image[i:i + self.sub_img_shape[0], j:j + self.sub_img_shape[1], :] for i, j in indices])
