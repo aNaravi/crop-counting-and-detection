@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import argparse
+import os
 from itertools import product
 
 
@@ -16,17 +18,30 @@ def get_pixels(event, col, row, flags, param):
         points_to_be_added.append((row, col))
 
 
-points_to_be_added, left_tops, right_bottoms = [], [], []
-dir_images = 'Images/Week_3_-_29th_Jan_19/Window1/CNN_training/'
-name = '113'
-decorr = cv2.imread(dir_images + name + '_decorred.tif')
-annotated = cv2.imread(dir_images + name + '_annotated.tif')
-binary = cv2.imread(dir_images + name + '_binary.tif')
+ap = argparse.ArgumentParser()
+ap.add_argument("-d", "--dir", default=".", required=False, help="path to images")
+ap.add_argument("-n", "--inum", default=".", required=False, help="image number")
+args = vars(ap.parse_args())
 
+dir_images = args.get('dir') + '/images/'
+dir_annotated = args.get('dir') + '/annotated/'
+dir_binaries = args.get('dir') + '/binaries/'
+inum = args.get('inum')
+
+image = cv2.imread(dir_images + 'entry_' + inum + '.tif')
+annotated = cv2.imread(dir_annotated + 'annotated_' + inum + '.tif')
+binary = cv2.imread(dir_binaries + 'binary_' + inum + '.tif', cv2.IMREAD_GRAYSCALE)
+
+if annotated is None:
+    os.makedirs(dir_annotated, exist_ok=True)
+    os.makedirs(dir_binaries, exist_ok=True)
+    annotated = np.copy(image)
+    binary = np.zeros(image.shape[:2])
+
+points_to_be_added, left_tops, right_bottoms = [], [], []
 while True:
     for p in points_to_be_added:
-        binary[p[0],p[1],:] = np.array([255,255,255])
-        # cv2.circle(binary, (p[1], p[0]), 3, (255,255,255), -1)
+        binary[p[0],p[1]] = 255
         cv2.circle(annotated, (p[1], p[0]), 3, (0,0,255), -1)
     points_to_be_added = []
 
@@ -37,9 +52,9 @@ while True:
         pixels = list(product(rows, cols))
 
         for pixel in product(rows, cols):
-            color = decorr[pixel[0], pixel[1], :]
+            color = image[pixel[0], pixel[1], :]
             annotated[pixel[0], pixel[1], :] = color
-            binary[pixel[0], pixel[1], :] = np.array([0, 0, 0])
+            binary[pixel[0], pixel[1]] = 0
     left_tops, right_bottoms = [], []
 
     cv2.namedWindow("win", cv2.WINDOW_NORMAL)
@@ -52,6 +67,5 @@ while True:
 
 cv2.destroyAllWindows()
 
-
-cv2.imwrite(dir_images + name + "_binary.tif", binary)
-cv2.imwrite(dir_images + name + "_annotated.tif", annotated)
+cv2.imwrite(dir_binaries + 'binary_' + inum + ".tif", binary)
+cv2.imwrite(dir_annotated + 'annotated_' + inum + ".tif", annotated)
