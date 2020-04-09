@@ -1,5 +1,5 @@
 import datetime
-from scipy import stats
+import csv
 from keras.models import Sequential, load_model
 from keras.layers.core import Dense, Activation, Flatten
 from keras.layers.convolutional import Conv2D, MaxPooling2D
@@ -65,29 +65,39 @@ class TasselNet:
             self.model.add(Flatten())
             self.model.add(Dense(1, activation='linear'))
 
-    def train(self, X, Y, **kwargs):
-        self.model.compile(loss=kwargs.get("loss", "mean_absolute_error"), optimizer=kwargs.get("optimizer", "sgd"))
+    def train(self, X, Y, processing_parameters, models_dir, training_parameters={}):
+        self.model.compile(loss=training_parameters.get("loss", "mean_absolute_error"), optimizer=training_parameters.get("optimizer", "sgd"))
         print("[INFO]: Training Model")
         self.model.fit(X, Y,
-                       batch_size=kwargs.get("batch_size", 1024),
-                       validation_split=kwargs.get("validation_split", 0.1),
-                       epochs=kwargs.get("epochs", 5))
-        self.model.save(kwargs.get("save_folder",'') + 'model_' + datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S") + '.hdf5')
+                       batch_size=training_parameters.get("batch_size", 128),
+                       validation_split=training_parameters.get("validation_split", 0.1),
+                       epochs=training_parameters.get("epochs", 5))
 
-    def test(self, X, Y, **kwargs):
-        agg = AggregateLocalCounts(img_shape=kwargs.get("img_dimensions", (384,1600)),
-                                   sub_img_shape=kwargs.get("sub_img_dimensions", (32,32)),
-                                   stride=kwargs.get("stride", 8),
-                                   point_radius=kwargs.get("point_radius", 0))
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        self.model.save(models_dir + 'model_' + timestamp + '.hdf5')
+        with open(models_dir + 'parameters_' + timestamp + '.csv', 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerows(processing_parameters.items())
 
+    def test(self, X, Y, aggregator):
         mean_absolute_errors, agg_predictions, agg_counts = [], [], []
+
         for sub_img_set, counts_set in zip(X, Y):
             predictions = self.model.predict(sub_img_set)
-            agg_predicted_count, agg_true_count = agg.aggregate_local_counts(predictions), agg.aggregate_local_counts(counts_set)
+
+            agg_predicted_count = aggregator.aggregate_local_counts(predictions)
+            agg_true_count = aggregator.aggregate_local_counts(counts_set)
+
             agg_predictions.append(agg_predicted_count)
             agg_counts.append(agg_true_count)
             mean_absolute_errors.append(abs(agg_predicted_count - agg_true_count))
-
-        print("Summary MAE Statistics: ", stats.describe(mean_absolute_errors))
-
+ 
         return mean_absolute_errors, agg_predictions, agg_counts
+
+    def predict(self, X, aggregator):
+        agg_predictions = []
+        for sub_img_set in X:
+            predictions = self.model.predict(sub_img_set)
+            agg_predictions.append(aggregator.aggregate_local_counts(predictions))
+
+        return agg_predictions
