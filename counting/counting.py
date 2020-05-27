@@ -156,7 +156,7 @@ def main():
 
             aggregator = AggregateLocalCounts(img_shape=processing_parameters.get("img_dimensions"),
                                               sub_img_shape=processing_parameters.get("sub_img_dimensions"),
-                                              strides=processing_parameters.get("agg_strides"),
+                                              strides=processing_parameters.get("strides"),
                                               point_radius=processing_parameters.get("point_radius"))
 
             tasselnet = TasselNet()

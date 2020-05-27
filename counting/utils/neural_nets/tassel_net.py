@@ -91,7 +91,7 @@ class TasselNet:
             agg_predictions.append(agg_predicted_count)
             agg_counts.append(agg_true_count)
             mean_absolute_errors.append(abs(agg_predicted_count - agg_true_count))
- 
+
         return mean_absolute_errors, agg_predictions, agg_counts
 
     def predict(self, X, aggregator):
