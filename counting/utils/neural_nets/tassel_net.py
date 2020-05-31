@@ -74,8 +74,8 @@ class TasselNet:
                        epochs=training_parameters.get("epochs", 5))
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        self.model.save(models_dir + 'model_' + timestamp + '.hdf5')
-        with open(models_dir + 'parameters_' + timestamp + '.csv', 'w') as csv_file:
+        self.model.save(models_dir + '/' + 'model_' + timestamp + '.hdf5')
+        with open(models_dir + '/' + 'parameters_' + timestamp + '.csv', 'w') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerows(processing_parameters.items())
 
