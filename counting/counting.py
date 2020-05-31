@@ -14,6 +14,56 @@ from utils.postprocessors import AggregateLocalCounts
 from utils.data_loaders import DataLoader
 from utils.neural_nets.tassel_net import TasselNet
 
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+
+ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+ap.add_argument("-i", metavar="IMAGES", dest="images", required=True, help="path to images")
+ap.add_argument("-b", metavar="BINARIES", dest="binaries", required=True, help="path to binaries")
+ap.add_argument("-s", metavar="SAVE", dest="save", default=os.path.dirname(__file__) + "/models", required=False,
+                help="path to save new models (default: crop-counting-and-detection/counting/models)")
+ap.add_argument("-m", metavar="MODE", dest="mode", default='TrainNewModel', required=False,
+                choices=['TrainNewModel', 'TrainSavedModel', 'TestSavedModel', 'PredictCounts'],
+                help="runtime mode \nchoices are (case-sensitive): TrainNewModel (default), TrainSavedModel, TestSavedModel, PredictCounts")
+ap.add_argument("-n", metavar="NEURAL-NET", dest="net", required=False, help="path to an existing trained model \nparameters csv must be in the same folder with the same timestamp")
+args = vars(ap.parse_args())
+
+# Parameter Definitions: ------------------------------------------------------------------------------------------------------------------------
+
+os.makedirs(args.get('save'))
+
+mode = args.get('mode')
+if mode != "TrainNewModel" and (not os.path.exists(args.get('net', '')) or args.get('net').split('.')[-1] != 'hdf5'):
+    raise Exception("mode {} requires valid saved model".format(args.get('mode')))
+
+# Dataset Parameters:
+
+img_dimensions = (3648, 2752) # (384,1600)
+sub_img_dimensions = (32,32)
+strides = (8,8)
+point_radius = 3
+blur_size = 7
+blur_sd = 2
+training_set_fraction = 3 / 4
+overlapping_aggregation = True
+
+# Neural Net Parameters:
+
+nn_architecture = 'alexnet'
+training_parameters = [
+    {
+        'batch_size':128,
+        'optimizer':optimizers.SGD(lr=0.01, momentum=0.1),
+        'epochs':7
+    },
+    {
+        'batch_size':128,
+        'optimizer':optimizers.SGD(lr=0.001, momentum=0.1),
+        'epochs':3
+    }
+]
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+
 
 def read_parameters_csv(filename):
     with open(filename, 'r') as csv_file:
@@ -113,8 +163,8 @@ def load_dataset_for_predict_mode(parameters):
 
 
 def main():
-    if mode in [0, 1]:  # training modes
-        if mode == 0:
+    if "Train" in mode:
+        if mode == "TrainNewModel":
             if overlapping_aggregation:
                 agg_strides = strides
             else:
@@ -139,16 +189,16 @@ def main():
 
             tasselnet = TasselNet()
             tasselnet.build(architecture=nn_architecture, input_shape=tuple((*sub_img_dimensions, 3)))
-        else:
+        else:  # TrainSavedModel
             parameters_csv = re.sub(r'model_(.*?).hdf5', r'parameters_\1.csv', args.get('net'))
             processing_parameters = read_parameters_csv(parameters_csv)
-            tasselnet = TasselNet(args.get("net"))
+            tasselnet = TasselNet(args.get('net'))
 
         # Train Model
         train_images, train_counts, test_images, test_counts = load_dataset_for_training_modes(processing_parameters)
 
         for params in training_parameters:
-            tasselnet.train(train_images, train_counts, processing_parameters, models_dir=args.get("models_dir"), training_parameters=params)
+            tasselnet.train(train_images, train_counts, processing_parameters, models_dir=args.get('save'), training_parameters=params)
 
 
         # Display Model Accuracy
@@ -161,7 +211,7 @@ def main():
         print("Summary MAE Statistics: ", stats.describe(MAE))
         print(sum(predictions) - sum(counts))
 
-    elif mode == 2:  # testing mode
+    elif mode == "TestSavedModel":
         parameters_csv = re.sub(r'model_(.*?).hdf5', r'parameters_\1.csv', args.get('net'))
         processing_parameters = read_parameters_csv(parameters_csv)
         aggregator = AggregateLocalCounts(img_shape=processing_parameters.get("img_dimensions"),
@@ -170,12 +220,12 @@ def main():
                                           point_radius=processing_parameters.get("point_radius"))
 
         images, counts = load_dataset_for_test_mode(processing_parameters)
-        tasselnet = TasselNet(args.get("net"))
+        tasselnet = TasselNet(args.get('net'))
         MAE, predictions, counts = tasselnet.test(images, counts, aggregator)
         print("Summary MAE Statistics: ", stats.describe(MAE))
         print(sum(predictions) - sum(counts))
 
-    else:  # predicting mode
+    else:  # PredictCounts
         parameters_csv = re.sub(r'model_(.*?).hdf5', r'parameters_\1.csv', args.get('net'))
         processing_parameters = read_parameters_csv(parameters_csv)
         aggregator = AggregateLocalCounts(img_shape=processing_parameters.get("img_dimensions"),
@@ -184,57 +234,10 @@ def main():
                                           point_radius=processing_parameters.get("point_radius"))
 
         images = load_dataset_for_predict_mode(processing_parameters)
-        tasselnet = TasselNet(args.get("net"))
+        tasselnet = TasselNet(args.get('net'))
         predictions = tasselnet.predict(images, aggregator)
         print(predictions)
 
-
-# --------------------------------------------------------------------------------------------------------------------------------------------
-
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--images", default="dataset/Week3/images/", required=False, help="path to images")
-ap.add_argument("-b", "--binaries", default="dataset/Week3/binaries/", required=False, help="path to binaries")
-ap.add_argument("-s", "--models-dir", default="models/", required=False, help="path to models directory")
-ap.add_argument("-n", "--net", required=False, help="path to saved model")
-ap.add_argument("-m", "--mode", default='train-new-model', required=False, help="runtime mode")
-args = vars(ap.parse_args())
-
-# Parameter Definitions:----------------------------------------------------------------------------------------------------------------------
-
-modes = {'train-new-model':0, 'train-saved-model':1, 'test-saved-model':2, 'predict-counts':3}
-mode = modes[args.get('mode')]
-
-if mode > 0 and (not os.path.exists(args.get('net', '')) or args.get('net').split('.')[-1] != 'hdf5'):
-    raise Exception("mode {} requires valid saved model".format(args.get('mode')))
-
-# Dataset Parameters:-------------------------------------------------------------------------------------------------------------------------
-
-img_dimensions = (384,1600)
-sub_img_dimensions = (32,32)
-strides = (8,8)
-point_radius = 3
-blur_size = 7
-blur_sd = 2
-training_set_fraction = 3 / 4
-overlapping_aggregation = True
-
-# Neural Net Parameters:----------------------------------------------------------------------------------------------------------------------
-
-nn_architecture = 'alexnet'
-training_parameters = [
-    {
-        'batch_size':128,
-        'optimizer':optimizers.SGD(lr=0.01, momentum=0.1),
-        'epochs':7
-    },
-    {
-        'batch_size':128,
-        'optimizer':optimizers.SGD(lr=0.001, momentum=0.1),
-        'epochs':3
-    }
-]
-
-# --------------------------------------------------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     main()
