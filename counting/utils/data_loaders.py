@@ -5,14 +5,16 @@ import numpy as np
 
 class DataLoader:
     # Method: Constructor
-    def __init__(self, preprocessors=None):
+    def __init__(self, preprocessors=None, grayscale=False):
         """
         :param preprocessors: List of image preprocessors
         """
-        if self.preprocessors is None:
+        if preprocessors is None:
             self.preprocessors = []
         else:
             self.preprocessors = preprocessors
+
+        self.grayscale = grayscale
 
     # Method: Used to load a list of images for pre-processing
     def load_continuous(self, image_paths, verbose=-1):
@@ -23,7 +25,7 @@ class DataLoader:
         """
         for i, image_path in enumerate(image_paths):
             label = image_path.split(os.path.sep)[-2]
-            if image_path.split(os.path.sep)[-2] == 'binaries':
+            if self.grayscale:
                 image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             else:
                 image = cv2.imread(image_path)
@@ -51,7 +53,7 @@ class DataLoader:
         data = []
         for i, image_path in enumerate(image_paths):
             label = image_path.split(os.path.sep)[-2]
-            if image_path.split(os.path.sep)[-2] == 'binaries':
+            if self.grayscale:
                 image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             else:
                 image = cv2.imread(image_path)

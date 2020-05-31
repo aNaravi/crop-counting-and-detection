@@ -51,9 +51,9 @@ def load_dataset_for_training_modes(parameters):
 
     # Define DataLoaders
     train_images_loader = DataLoader(preprocessors=[decorrstretcher, resizor, img_cropper_for_training])
-    train_counts_loader = DataLoader(preprocessors=[resizor, contours, blurring, img_cropper_for_training, counter])
+    train_counts_loader = DataLoader(preprocessors=[resizor, contours, blurring, img_cropper_for_training, counter], grayscale=True)
     test_images_loader = DataLoader(preprocessors=[decorrstretcher, resizor, img_cropper_for_predictions])
-    test_counts_loader = DataLoader(preprocessors=[resizor, contours, blurring, img_cropper_for_predictions, counter])
+    test_counts_loader = DataLoader(preprocessors=[resizor, contours, blurring, img_cropper_for_predictions, counter], grayscale=True)
 
     # Train-Test Split
     image_paths = np.sort(np.fromiter(imutils_paths.list_images(args.get("images")), dtype='<U128'))
@@ -94,7 +94,7 @@ def load_dataset_for_test_mode(parameters):
 
     # Define DataLoaders
     images_loader = DataLoader(preprocessors=[decorrstretcher, resizor, img_cropper_for_predictions])
-    counts_loader = DataLoader(preprocessors=[resizor, contours, blurring, img_cropper_for_predictions, counter])
+    counts_loader = DataLoader(preprocessors=[resizor, contours, blurring, img_cropper_for_predictions, counter], grayscale=True)
 
     image_paths = np.sort(np.fromiter(imutils_paths.list_images(args.get("images")), dtype='<U128'))
     binary_paths = np.sort(np.fromiter(imutils_paths.list_images(args.get("binaries")), dtype='<U128'))
