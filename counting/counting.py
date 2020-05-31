@@ -31,23 +31,15 @@ def read_parameters_csv(filename):
 
 
 def load_dataset_for_training_modes(parameters):
-    img_dimensions = parameters.get('img_dimensions')
-    sub_img_dimensions = parameters.get('sub_img_dimensions')
-    strides = parameters.get('strides')
-    agg_strides = parameters.get('agg_strides')
-    point_radius = parameters.get('point_radius')
-    blur_size = parameters.get('blur_size')
-    blur_sd = parameters.get('blur_sd')
-    training_set_fraction = parameters.get('training_set_fraction')
 
     # Define Preprocessors
-    resizor = ResizePreprocessor(*img_dimensions)
+    resizor = ResizePreprocessor(*parameters.get('img_dimensions'))
     decorrstretcher = DecorrstretchPreprocessor()
-    contours = ContourPreprocessor(point_radius)
-    blurring = DensityPreprocessor(blur_size, blur_sd)
+    contours = ContourPreprocessor(parameters.get('point_radius'))
+    blurring = DensityPreprocessor(parameters.get('blur_size'), parameters.get('blur_sd'))
     counter = CountPreprocessor()
-    img_cropper_for_training = SubImagePreprocessor(sub_img_dimensions, strides)
-    img_cropper_for_predictions = SubImagePreprocessor(sub_img_dimensions, agg_strides)
+    img_cropper_for_training = SubImagePreprocessor(parameters.get('sub_img_dimensions'), parameters.get('strides'))
+    img_cropper_for_predictions = SubImagePreprocessor(parameters.get('sub_img_dimensions'), parameters.get('agg_strides'))
 
     # Define DataLoaders
     train_images_loader = DataLoader(preprocessors=[decorrstretcher, resizor, img_cropper_for_training])
@@ -62,7 +54,7 @@ def load_dataset_for_training_modes(parameters):
     assert L1 == L2, "number of images ({}) does not equal number of binaries ({})".format(L1, L2)
     assert L1 > 0, "empty directory: {}".format(args.get("images"))
     assert L2 > 0, "empty directory: {}".format(args.get("binaries"))
-    train_indices = np.random.choice(range(L1), size=round(L1 * training_set_fraction), replace=False)
+    train_indices = np.random.choice(range(L1), size=round(L1 * parameters.get('training_set_fraction')), replace=False)
     test_indices = np.delete(np.arange(L1), train_indices)
 
     # Load Images
@@ -77,20 +69,14 @@ def load_dataset_for_training_modes(parameters):
 
 
 def load_dataset_for_test_mode(parameters):
-    img_dimensions = parameters.get('img_dimensions')
-    sub_img_dimensions = parameters.get('sub_img_dimensions')
-    agg_strides = parameters.get('agg_strides')
-    point_radius = parameters.get('point_radius')
-    blur_size = parameters.get('blur_size')
-    blur_sd = parameters.get('blur_sd')
 
     # Define Preprocessors
-    resizor = ResizePreprocessor(*img_dimensions)
+    resizor = ResizePreprocessor(*parameters.get('img_dimensions'))
     decorrstretcher = DecorrstretchPreprocessor()
-    contours = ContourPreprocessor(point_radius)
-    blurring = DensityPreprocessor(blur_size, blur_sd)
+    contours = ContourPreprocessor(parameters.get('point_radius'))
+    blurring = DensityPreprocessor(parameters.get('blur_size'), parameters.get('blur_size'))
     counter = CountPreprocessor()
-    img_cropper_for_predictions = SubImagePreprocessor(sub_img_dimensions, agg_strides)
+    img_cropper_for_predictions = SubImagePreprocessor(parameters.get('sub_img_dimensions'), parameters.get('agg_strides'))
 
     # Define DataLoaders
     images_loader = DataLoader(preprocessors=[decorrstretcher, resizor, img_cropper_for_predictions])
@@ -110,14 +96,11 @@ def load_dataset_for_test_mode(parameters):
 
 
 def load_dataset_for_predict_mode(parameters):
-    img_dimensions = parameters.get('img_dimensions')
-    sub_img_dimensions = parameters.get('sub_img_dimensions')
-    agg_strides = parameters.get('agg_strides')
 
     # Define Preprocessors
-    resizor = ResizePreprocessor(*img_dimensions)
+    resizor = ResizePreprocessor(*parameters.get('img_dimensions'))
     decorrstretcher = DecorrstretchPreprocessor()
-    img_cropper_for_predictions = SubImagePreprocessor(sub_img_dimensions, agg_strides)
+    img_cropper_for_predictions = SubImagePreprocessor(parameters.get('sub_img_dimensions'), parameters.get('agg_strides'))
 
     # Define DataLoaders
     images_loader = DataLoader(preprocessors=[decorrstretcher, resizor, img_cropper_for_predictions])
@@ -154,27 +137,25 @@ def main():
                 'training_set_fraction':training_set_fraction
             }
 
-            aggregator = AggregateLocalCounts(img_shape=processing_parameters.get("img_dimensions"),
-                                              sub_img_shape=processing_parameters.get("sub_img_dimensions"),
-                                              strides=processing_parameters.get("strides"),
-                                              point_radius=processing_parameters.get("point_radius"))
-
             tasselnet = TasselNet()
             tasselnet.build(architecture=nn_architecture, input_shape=tuple((*sub_img_dimensions, 3)))
         else:
             parameters_csv = re.sub(r'model_(.*?).hdf5', r'parameters_\1.csv', args.get('net'))
             processing_parameters = read_parameters_csv(parameters_csv)
-            aggregator = AggregateLocalCounts(img_shape=processing_parameters.get("img_dimensions"),
-                                              sub_img_shape=processing_parameters.get("sub_img_dimensions"),
-                                              strides=processing_parameters.get("strides"),
-                                              point_radius=processing_parameters.get("point_radius"))
-
             tasselnet = TasselNet(args.get("net"))
 
+        # Train Model
         train_images, train_counts, test_images, test_counts = load_dataset_for_training_modes(processing_parameters)
 
         for params in training_parameters:
             tasselnet.train(train_images, train_counts, processing_parameters, models_dir=args.get("models_dir"), training_parameters=params)
+
+
+        # Display Model Accuracy
+        aggregator = AggregateLocalCounts(img_shape=processing_parameters.get("img_dimensions"),
+                                          sub_img_shape=processing_parameters.get("sub_img_dimensions"),
+                                          strides=processing_parameters.get("strides"),
+                                          point_radius=processing_parameters.get("point_radius"))
 
         MAE, predictions, counts = tasselnet.test(test_images, test_counts, aggregator)
         print("Summary MAE Statistics: ", stats.describe(MAE))
