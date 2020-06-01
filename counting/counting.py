@@ -104,6 +104,7 @@ def load_dataset_for_training_modes(parameters):
     assert L2 > 0, "empty directory: {}".format(args.get("binaries"))
     train_indices = np.random.choice(range(L1), size=round(L1 * parameters.get('training_set_fraction')), replace=False)
     test_indices = np.delete(np.arange(L1), train_indices)
+    assert len(test_indices) > 0, "test-set has 0 images"
 
     # Load Images
     print("[INFO]: Loading Images...")
