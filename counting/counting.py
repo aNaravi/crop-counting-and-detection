@@ -14,8 +14,10 @@ from utils.postprocessors import AggregateLocalCounts
 from utils.data_loaders import DataLoader
 from utils.neural_nets.tassel_net import TasselNet
 
-# -----------------------------------------------------------------------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+# Command-Line Arguments
 ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 ap.add_argument("-i", metavar="IMAGES", dest="images", required=True, help="path to images")
 ap.add_argument("-b", metavar="BINARIES", dest="binaries", required=True, help="path to binaries")
@@ -27,8 +29,6 @@ ap.add_argument("-m", metavar="MODE", dest="mode", default='TrainNewModel', requ
 ap.add_argument("-n", metavar="NEURAL-NET", dest="net", required=False, help="path to an existing trained model \nparameters csv must be in the same folder with the same timestamp")
 args = vars(ap.parse_args())
 
-# Parameter Definitions: ------------------------------------------------------------------------------------------------------------------------
-
 os.makedirs(args.get('save'))
 
 mode = args.get('mode')
@@ -36,7 +36,6 @@ if mode != "TrainNewModel" and (not os.path.exists(args.get('net', '')) or args.
     raise Exception("mode {} requires valid saved model".format(args.get('mode')))
 
 # Dataset Parameters:
-
 img_dimensions = (3648, 2752) # (384,1600)
 sub_img_dimensions = (32,32)
 strides = (8,8)
@@ -47,7 +46,6 @@ training_set_fraction = 3 / 4
 overlapping_aggregation = True
 
 # Neural Net Parameters:
-
 nn_architecture = 'alexnet'
 training_parameters = [
     {
@@ -62,8 +60,7 @@ training_parameters = [
     }
 ]
 
-# -----------------------------------------------------------------------------------------------------------------------------------------------
-
+# ------------------------------------------------------------------------------------------------------------------------------------------------------- 
 
 def read_parameters_csv(filename):
     with open(filename, 'r') as csv_file:
@@ -108,12 +105,12 @@ def load_dataset_for_training_modes(parameters):
     test_indices = np.delete(np.arange(L1), train_indices)
 
     # Load Images
-    print("[INFO]: loading images...")
-    train_images = train_images_loader.load_continuous(image_paths[train_indices], verbose=-1)
-    test_images = test_images_loader.load_discontinuous(image_paths[test_indices], verbose=-1)
-    print("[INFO]: loading binaries...")
-    train_counts = train_counts_loader.load_continuous(binary_paths[train_indices], verbose=-1).reshape(-1,1)
-    test_counts = np.expand_dims(test_counts_loader.load_discontinuous(binary_paths[test_indices], verbose=-1), axis=2)
+    print("[INFO]: Loading Images...")
+    train_images = train_images_loader.load_continuous(image_paths[train_indices], verbose=1)
+    test_images = test_images_loader.load_discontinuous(image_paths[test_indices], verbose=1)
+    print("[INFO]: Loading Binaries...")
+    train_counts = train_counts_loader.load_continuous(binary_paths[train_indices], verbose=1).reshape(-1,1)
+    test_counts = np.expand_dims(test_counts_loader.load_discontinuous(binary_paths[test_indices], verbose=1), axis=2)
 
     return train_images, train_counts, test_images, test_counts
 
@@ -139,7 +136,9 @@ def load_dataset_for_test_mode(parameters):
     assert L1 > 0, "empty directory: {}".format(args.get("images"))
     assert L2 > 0, "empty directory: {}".format(args.get("binaries"))
 
+    print("[INFO]: Loading Images...")
     images = images_loader.load_discontinuous(image_paths, verbose=-1)
+    print("[INFO]: Loading Binaries...")
     counts = np.expand_dims(counts_loader.load_discontinuous(binary_paths, verbose=-1), axis=2)
 
     return images, counts
@@ -157,6 +156,8 @@ def load_dataset_for_predict_mode(parameters):
 
     image_paths = np.sort(np.fromiter(imutils_paths.list_images(args.get("images")), dtype='<U128'))
     assert len(image_paths) > 0, "empty directory: {}".format(args.get("images"))
+
+    print("[INFO]: Loading Images...")
     images = images_loader.load_discontinuous(image_paths, verbose=-1)
 
     return images
@@ -189,17 +190,16 @@ def main():
 
             tasselnet = TasselNet()
             tasselnet.build(architecture=nn_architecture, input_shape=tuple((*sub_img_dimensions, 3)))
+
         else:  # TrainSavedModel
             parameters_csv = re.sub(r'model_(.*?).hdf5', r'parameters_\1.csv', args.get('net'))
             processing_parameters = read_parameters_csv(parameters_csv)
             tasselnet = TasselNet(args.get('net'))
 
-        # Train Model
         train_images, train_counts, test_images, test_counts = load_dataset_for_training_modes(processing_parameters)
 
         for params in training_parameters:
             tasselnet.train(train_images, train_counts, processing_parameters, models_dir=args.get('save'), training_parameters=params)
-
 
         # Display Model Accuracy
         aggregator = AggregateLocalCounts(img_shape=processing_parameters.get("img_dimensions"),
@@ -218,9 +218,10 @@ def main():
                                           sub_img_shape=processing_parameters.get("sub_img_dimensions"),
                                           strides=processing_parameters.get("strides"),
                                           point_radius=processing_parameters.get("point_radius"))
+        tasselnet = TasselNet(args.get('net'))
 
         images, counts = load_dataset_for_test_mode(processing_parameters)
-        tasselnet = TasselNet(args.get('net'))
+
         MAE, predictions, counts = tasselnet.test(images, counts, aggregator)
         print("Summary MAE Statistics: ", stats.describe(MAE))
         print(sum(predictions) - sum(counts))
@@ -232,9 +233,10 @@ def main():
                                           sub_img_shape=processing_parameters.get("sub_img_dimensions"),
                                           strides=processing_parameters.get("strides"),
                                           point_radius=processing_parameters.get("point_radius"))
+        tasselnet = TasselNet(args.get('net'))
 
         images = load_dataset_for_predict_mode(processing_parameters)
-        tasselnet = TasselNet(args.get('net'))
+
         predictions = tasselnet.predict(images, aggregator)
         print(predictions)
 
