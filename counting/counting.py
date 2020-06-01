@@ -26,14 +26,15 @@ ap.add_argument("-s", metavar="SAVE", dest="save", default=os.path.dirname(__fil
 ap.add_argument("-m", metavar="MODE", dest="mode", default='TrainNewModel', required=False,
                 choices=['TrainNewModel', 'TrainSavedModel', 'TestSavedModel', 'PredictCounts'],
                 help="runtime mode \nchoices are (case-sensitive): TrainNewModel (default), TrainSavedModel, TestSavedModel, PredictCounts")
-ap.add_argument("-n", metavar="NEURAL-NET", dest="net", required=False, help="path to an existing trained model \nparameters csv must be in the same folder with the same timestamp")
+ap.add_argument("-n", metavar="NEURAL-NET", dest="net", default='', required=False,
+                help="path to an existing trained model \nparameters csv must be in the same folder with the same timestamp")
 args = vars(ap.parse_args())
 
-os.makedirs(args.get('save'))
+os.makedirs(args.get('save'), exist_ok=True)
 
 mode = args.get('mode')
-if mode != "TrainNewModel" and (not os.path.exists(args.get('net', '')) or args.get('net').split('.')[-1] != 'hdf5'):
-    raise Exception("mode {} requires valid saved model".format(args.get('mode')))
+if mode != "TrainNewModel" and (not os.path.exists(args.get('net')) or args.get('net').split('.')[-1] != 'hdf5'):
+    raise Exception("mode '{}' requires valid saved model".format(args.get('mode')))
 
 # Dataset Parameters:
 img_dimensions = (3648, 2752) # (384,1600)
