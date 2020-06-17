@@ -1,16 +1,16 @@
 
 # Table of Contents
 
-1.  [Crop Counting and Detection](#org8d46e6a)
-2.  [Getting Started](#orgd49f8b5)
-    1.  [Prerequisites](#orgb055bc9)
-    2.  [Docker](#orgc093cf1)
-    3.  [Usage](#org9bc09f3)
-3.  [Workflow](#orgf115521)
-    1.  [Illustration of usage with the Maize Dataset:](#org5eac127)
+1.  [Crop Counting and Detection](#org66eb966)
+2.  [Getting Started](#orgaf2d25e)
+    1.  [Prerequisites](#org47b2e83)
+    2.  [Docker](#org6ef955b)
+    3.  [Usage](#orgef97684)
+3.  [Workflow](#orgcb845d0)
+    1.  [Illustration of usage with the Maize Dataset:](#org6494abe)
 
 
-<a id="org8d46e6a"></a>
+<a id="org66eb966"></a>
 
 # Crop Counting and Detection
 
@@ -19,14 +19,14 @@ A project to count and detect plants or crops in agricultural fields which inclu
 [TasselNet: counting maize tassels in the wild via local counts regression network](https://plantmethods.biomedcentral.com/track/pdf/10.1186/s13007-017-0224-0)
 
 
-<a id="orgd49f8b5"></a>
+<a id="orgaf2d25e"></a>
 
 # Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 
-<a id="orgb055bc9"></a>
+<a id="org47b2e83"></a>
 
 ## Prerequisites
 
@@ -36,7 +36,7 @@ These instructions will get you a copy of the project up and running on your loc
 Alternatively, one may use the Docker image that contains all the required packages.
 
 
-<a id="orgc093cf1"></a>
+<a id="org6ef955b"></a>
 
 ## Docker
 
@@ -45,7 +45,7 @@ Make sure you have both both docker (v. 19.03.11) and [nvidia-docker](https://gi
     $ docker run -it --gpus all -e NVIDIA_DRIVER_CAPABILITIES=all -e DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v /path/to/repo:/home/crop-counting anaravi/crop-counting-and-detection bash
 
 
-<a id="org9bc09f3"></a>
+<a id="orgef97684"></a>
 
 ## Usage
 
@@ -85,24 +85,24 @@ Make sure you have both both docker (v. 19.03.11) and [nvidia-docker](https://gi
       -a ANNOTATIONS  annotations directory name
 
 
-<a id="orgf115521"></a>
+<a id="orgcb845d0"></a>
 
 # Workflow
 
 
-<a id="org5eac127"></a>
+<a id="org6494abe"></a>
 
 ## Illustration of usage with the [Maize Dataset](https://github.com/poppinace/mtc):
 
-1.  Extract the images into `datasets/Maize_Tassel_Counting_Dataset/Images`
+Extract the images into `datasets/Maize_Tassel_Counting_Dataset/Images`
 
-2.  Extract the annotations into `datasets/Maize_Tassel_Counting_Dataset/Annotations`
+Extract the images into `datasets/Maize_Tassel_Counting_Dataset/Annotations`
 
-3.  Get Binary Images from Matlab Annotations
+Create Binary Images from Matlab Annotations:
 
     $ python annotating/matlab_annotations_to_binary.py -i datasets/Maize_Tassel_Counting_Dataset/Images -a datasets/Maize_Tassel_Counting_Dataset/Annotations
 
-1.  Train a new Model
+Train a new Model:
 
     $ python counting/counting.py -i datasets/Maize_Tassel_Counting_Dataset/Images -b datasets/Maize_Tassel_Counting_Dataset/Binaries
 
