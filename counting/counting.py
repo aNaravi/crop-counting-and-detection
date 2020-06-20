@@ -20,7 +20,7 @@ from utils.neural_nets.tassel_net import TasselNet
 # Command-Line Arguments
 ap = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
 ap.add_argument("-i", metavar="IMAGES", dest="images", required=True, help="path to images")
-ap.add_argument("-b", metavar="BINARIES", dest="binaries", required=True, help="path to binaries")
+ap.add_argument("-b", metavar="BINARIES", dest="binaries", default=None, required=False, help="path to binaries")
 ap.add_argument("-s", metavar="SAVE", dest="save", default=os.path.dirname(__file__) + "/models", required=False,
                 help="path to save new models (default: crop-counting-and-detection/counting/models)")
 ap.add_argument("-m", metavar="MODE", dest="mode", default='TrainNewModel', required=False,
@@ -35,6 +35,9 @@ os.makedirs(args.get('save'), exist_ok=True)
 mode = args.get('mode')
 if mode != "TrainNewModel" and (not os.path.exists(args.get('net')) or args.get('net').split('.')[-1] != 'hdf5'):
     raise Exception("mode '{}' requires valid saved model".format(args.get('mode')))
+if mode != "PredictCounts" and args.get('binaries') == None:
+    raise Exception("mode {} requires Binaries")
+
 
 # Dataset Parameters:
 img_dimensions = (3648, 2752) # (384,1600)
